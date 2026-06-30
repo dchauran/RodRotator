@@ -73,11 +73,11 @@ float expressionPositionFromAdc(int sleeveAdc)
   float position = (float)(sleeveAdc - EXPRESSION_HEEL_ADC) / (float)(EXPRESSION_TOE_ADC - EXPRESSION_HEEL_ADC);
 
   if (position < 0.0f)
-    return 0.0f;
+    position = 0.0f;
   if (position > 1.0f)
-    return 1.0f;
+    position = 1.0f;
 
-  return position;
+  return EXPRESSION_INVERT ? 1.0f - position : position;
 }
 
 float expressionRpmFromPosition(float position)

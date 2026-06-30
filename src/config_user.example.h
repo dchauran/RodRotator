@@ -43,3 +43,7 @@
 // #define CONFIG_EXPRESSION_HEEL_ADC 72
 // #undef CONFIG_EXPRESSION_TOE_ADC
 // #define CONFIG_EXPRESSION_TOE_ADC 332
+
+// Reverse expression pedal direction if your pedal reads toe-down as low ADC.
+// #undef CONFIG_EXPRESSION_INVERT
+// #define CONFIG_EXPRESSION_INVERT true

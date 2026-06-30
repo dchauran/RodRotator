@@ -13,13 +13,12 @@ So if you see something and wonder why I chose that particular component, it's b
 
 The project consists of several parts.
 
-- Mostly vibe-coded Arduino / PlatformIO firmware for a stepper-driven fishing rod rotator. The
+- Mostly vibe-coded PlatformIO firmware for a stepper-driven fishing rod rotator. The
 current target is an Arduino Uno-class board with an LCD keypad shield and a
 BIGTREETECH-style TMC2209 driver over STEP/DIR plus one-wire UART.
 - A 3d printed motor mount to attach a stepper motor to a metal CRB rod dryer stand (link TBD).
 - An adapter to connect the stepper to  a pre-existing [printable lathe chuck](https://www.thingiverse.com/thing:2670620).
 - A printable case (not yet designed, but will probably be derived from [an existing design](https://www.thingiverse.com/thing:845415))
-
 
 The firmware supports keypad speed presets, bidirectional ramped direction
 changes, TMC2209 UART setup, StallGuard stop detection, and optional TRS pedal
@@ -80,15 +79,16 @@ TMC2209 is not detected.
 The firmware auto-detects three pedal states from the TRS jack:
 
 - No pedal: both sense pins read pulled high.
-- Switch pedal: sleeve is grounded by the TS plug; tip closes to ground when
+- Switch pedal (TS, on/off only): sleeve is grounded by the TS plug; tip closes to ground when
   pressed.
-- Expression pedal: sleeve reads an analog position value.
+- Expression pedal (TRS, Ring common): sleeve reads an analog position value.
 
 In switch mode, the selected keypad speed is held stopped until the pedal is
 pressed.
 
-In expression mode, heel-down is stopped and toe-down maps up to 300 RPM using
-a shaped curve with finer control near the low end.
+In expression mode, one end of travel is stopped and the other maps up to
+300 RPM using a shaped curve with finer control near the low end. Set
+`CONFIG_EXPRESSION_INVERT` if your pedal direction is reversed.
 
 ## Tuning
 
@@ -112,6 +112,7 @@ The most likely values to change are:
 | `CONFIG_STALL_DIAG_DEBOUNCE_MS` | How long DIAG must remain asserted before a stall |
 | `CONFIG_SPEED_RAMP_RPM_PER_SECOND` | Ramp rate for speed and direction changes |
 | `CONFIG_EXPRESSION_HEEL_ADC` / `CONFIG_EXPRESSION_TOE_ADC` | Expression pedal calibration |
+| `CONFIG_EXPRESSION_INVERT` | Reverse expression pedal direction |
 | `CONFIG_EXPRESSION_LOW_SPEED_POSITION` / `CONFIG_EXPRESSION_LOW_SPEED_RPM` | Low-speed pedal curve |
 | `CONFIG_LCD_SHIELD_VERSION` | LCD keypad button ladder, `1` for older V1.0 or `2` for newer V1.1/V2-style shields |
 | `CONFIG_LCD_BUTTON_*_ADC` | LCD keypad shield button thresholds |
