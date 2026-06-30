@@ -26,3 +26,6 @@ Thumbs.db
 *.log
 *.tmp
 *.bak
+
+# Local firmware tuning overrides
+src/config_user.h

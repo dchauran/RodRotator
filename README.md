@@ -1,12 +1,29 @@
 # Rod Rotator
 
-Arduino / PlatformIO firmware for a stepper-driven fishing rod rotator. The
+This tod turner is built entirely from parts I had on hand, including:
+
+- A stepper motor from my first ever 3d printer
+- An arduino uno clone and LCD shield from a kit I have had laying around for years
+- A TMC2209 stepper driver I had spare from another printer build
+- Assorted electronic parts (power supply, buck converter, 1/4" TRS jack) that I had in my various piles of project extras.
+- An off the shelf guitar expression pedal, and a cheap on/off footswitch pedal from an electric piano.
+- A CRB rod dryer that worked perfectly fine, but I wanted to make "better"
+
+So if you see something and wonder why I chose that particular component, it's because it's what I had.
+
+The project consists of several parts.
+
+- Mostly vibe-coded Arduino / PlatformIO firmware for a stepper-driven fishing rod rotator. The
 current target is an Arduino Uno-class board with an LCD keypad shield and a
 BIGTREETECH-style TMC2209 driver over STEP/DIR plus one-wire UART.
+- A 3d printed motor mount to attach a stepper motor to a metal CRB rod dryer stand (link TBD).
+- An adapter to connect the stepper to  a pre-existing [printable lathe chuck](https://www.thingiverse.com/thing:2670620).
+- A printable case (not yet designed, but will probably be derived from [an existing design](https://www.thingiverse.com/thing:845415))
+
 
 The firmware supports keypad speed presets, bidirectional ramped direction
 changes, TMC2209 UART setup, StallGuard stop detection, and optional TRS pedal
-control.
+control for both start/stop and variable speed pedal options.
 
 ## Hardware
 
@@ -19,8 +36,7 @@ Tested around this setup:
 - 24 V motor supply recommended for higher RPM operation
 - Isolated 1/4 in TRS jack for optional pedals
 
-Do not feed motor supply voltage into the Arduino barrel jack. The Arduino,
-driver logic, and motor supply must share ground.
+The Arduino, driver logic, and motor supply must share ground.
 
 ## Wiring
 
@@ -32,7 +48,6 @@ driver logic, and motor supply must share ground.
 | D12 | 1k resistor to TMC2209 PDN_UART / PDN |
 | A2 | same TMC2209 PDN_UART / PDN node |
 | A1 | TMC2209 DIAG |
-| A0 | LCD keypad buttons |
 | D4-D9 | LCD keypad shield |
 
 For the optional pedal jack:
@@ -77,39 +92,46 @@ a shaped curve with finer control near the low end.
 
 ## Tuning
 
-Most user-tunable values live near the top of [src/main.cpp](src/main.cpp) in
-the `User configuration` section.
+Default user-tunable values live in [src/config.h](src/config.h). For personal
+tuning, copy [src/config_user.example.h](src/config_user.example.h) to
+`src/config_user.h` and override only the values you want to change.
+`src/config_user.h` is ignored by git.
+
+`src/config_user.h` is included at the end of `src/config.h`. Override a setting with
+`#undef CONFIG_NAME` followed by `#define CONFIG_NAME ...`. The firmware then
+uses those final `CONFIG_*` values internally.
 
 The most likely values to change are:
 
-| Setting | Purpose |
+| Override macro | Purpose |
 | --- | --- |
-| `MICROSTEPS` | TMC2209 microstep mode and RPM math |
-| `SPEED_PRESETS_RPM[]` | Keypad speed presets |
-| `RUN_CURRENT_MA[]` | TMC2209 RMS current per speed preset |
-| `STALL_GUARD_THRESHOLDS[]` | StallGuard sensitivity per speed preset |
-| `STALL_DIAG_DEBOUNCE_MS[]` | How long DIAG must remain asserted before a stall |
-| `SPEED_RAMP_RPM_PER_SECOND` | Ramp rate for speed and direction changes |
-| `EXPRESSION_HEEL_ADC` / `EXPRESSION_TOE_ADC` | Expression pedal calibration |
-| `EXPRESSION_LOW_SPEED_POSITION` / `EXPRESSION_LOW_SPEED_RPM` | Low-speed pedal curve |
-| `LCD_SHIELD_VERSION` | LCD keypad button ladder, `1` for older V1.0 or `2` for newer V1.1/V2-style shields |
-| `LCD_BUTTON_*_ADC` | LCD keypad shield button thresholds |
+| `CONFIG_MICROSTEPS` | TMC2209 microstep mode and RPM math |
+| `CONFIG_SPEED_PRESETS_RPM` | Keypad speed presets |
+| `CONFIG_RUN_CURRENT_MA` | TMC2209 RMS current per speed preset |
+| `CONFIG_STALL_GUARD_THRESHOLDS` | StallGuard sensitivity per speed preset |
+| `CONFIG_STALL_DIAG_DEBOUNCE_MS` | How long DIAG must remain asserted before a stall |
+| `CONFIG_SPEED_RAMP_RPM_PER_SECOND` | Ramp rate for speed and direction changes |
+| `CONFIG_EXPRESSION_HEEL_ADC` / `CONFIG_EXPRESSION_TOE_ADC` | Expression pedal calibration |
+| `CONFIG_EXPRESSION_LOW_SPEED_POSITION` / `CONFIG_EXPRESSION_LOW_SPEED_RPM` | Low-speed pedal curve |
+| `CONFIG_LCD_SHIELD_VERSION` | LCD keypad button ladder, `1` for older V1.0 or `2` for newer V1.1/V2-style shields |
+| `CONFIG_LCD_BUTTON_*_ADC` | LCD keypad shield button thresholds |
 
-Keep `SPEED_PRESETS_RPM[]`, `RUN_CURRENT_MA[]`, `STALL_GUARD_THRESHOLDS[]`, and
-`STALL_DIAG_DEBOUNCE_MS[]` aligned by column. For example, the first current,
-StallGuard threshold, and debounce value all apply to the first RPM preset.
+Keep `CONFIG_SPEED_PRESETS_RPM`, `CONFIG_RUN_CURRENT_MA`,
+`CONFIG_STALL_GUARD_THRESHOLDS`, and `CONFIG_STALL_DIAG_DEBOUNCE_MS` aligned by
+column. For example, the first current, StallGuard threshold, and debounce value
+all apply to the first RPM preset.
 
-Higher `STALL_GUARD_THRESHOLDS[]` values are more sensitive. StallGuard is
+Higher `CONFIG_STALL_GUARD_THRESHOLDS` values are more sensitive. StallGuard is
 ignored briefly after starts, speed changes, ramps, and direction changes to
 avoid false trips from normal transients.
 
-Set `USE_UART_CURRENT_CONTROL` to `false` if you want the TMC2209 Vref
+Set `CONFIG_USE_UART_CURRENT_CONTROL` to `false` if you want the TMC2209 Vref
 potentiometer to control current while firmware still configures the rest of
 the driver over UART.
 
-`MICROSTEPS` is still relevant even with UART enabled. The firmware writes that
-value to the TMC2209 during setup and also uses it to calculate the STEP pulse
-rate for a requested RPM.
+`CONFIG_MICROSTEPS` is still relevant even with UART enabled. The firmware
+writes that value to the TMC2209 during setup and also uses it to calculate the
+STEP pulse rate for a requested RPM.
 
 ## PlatformIO
 
@@ -133,6 +155,14 @@ pio device monitor
 
 ## Project Layout
 
-- [src/main.cpp](src/main.cpp) - firmware
+- [src/main.cpp](src/main.cpp) - setup/loop orchestration
+- [src/config.h](src/config.h) - tracked default firmware configuration
+- [src/config_user.example.h](src/config_user.example.h) - template for local overrides
+- `src/config_user.h` - optional local overrides, ignored by git
+- [src/motion.cpp](src/motion.cpp) - step timer, RPM math, ramping, direction changes
+- [src/driver_control.cpp](src/driver_control.cpp) - TMC2209 UART setup and StallGuard polling
+- [src/pedal.cpp](src/pedal.cpp) - pedal detection and expression mapping
+- [src/ui_lcd.cpp](src/ui_lcd.cpp) - LCD/keypad UI
+- [src/state.cpp](src/state.cpp) - shared runtime state
 - [platformio.ini](platformio.ini) - PlatformIO board and library configuration
 - [LICENSE](LICENSE) - CC BY-NC-SA 4.0
