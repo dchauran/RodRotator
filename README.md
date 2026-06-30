@@ -1,43 +1,63 @@
 # Rod Rotator
 
-This tod turner is built entirely from parts I had on hand, including:
+This rod turner is built from parts I already had on hand:
 
-- A stepper motor from my first ever 3d printer
-- An arduino uno clone and LCD shield from a kit I have had laying around for years
-- A TMC2209 stepper driver I had spare from another printer build
-- Assorted electronic parts (power supply, buck converter, 1/4" TRS jack) that I had in my various piles of project extras.
-- An off the shelf guitar expression pedal, and a cheap on/off footswitch pedal from an electric piano.
-- A CRB rod dryer that worked perfectly fine, but I wanted to make "better"
+- A stepper motor from my first 3D printer
+- An Arduino Uno clone and LCD shield from an old kit
+- A spare TMC2209 stepper driver from another printer build
+- Assorted electronics, including a power supply, buck converter, and 1/4 in
+  TRS jack
+- An off-the-shelf guitar expression pedal and a cheap on/off footswitch pedal
+  from an electric piano
+- A CRB rod dryer that worked fine, but that I wanted to make more capable
 
-So if you see something and wonder why I chose that particular component, it's because it's what I had.
+So if a component choice looks oddly specific, it is probably because it was
+already in the parts bin.
 
-The project consists of several parts.
+The project currently includes:
 
-- Mostly vibe-coded PlatformIO firmware for a stepper-driven fishing rod rotator. The
-current target is an Arduino Uno-class board with an LCD keypad shield and a
-BIGTREETECH-style TMC2209 driver over STEP/DIR plus one-wire UART.
-- A 3d printed motor mount to attach a stepper motor to a metal CRB rod dryer stand (link TBD).
-- An adapter to connect the stepper to  a pre-existing [printable lathe chuck](https://www.thingiverse.com/thing:2670620).
-- A printable case (not yet designed, but will probably be derived from [an existing design](https://www.thingiverse.com/thing:845415))
+- PlatformIO firmware for a stepper-driven fishing rod rotator
+- A 3D printed motor mount for attaching a stepper motor to a metal CRB rod
+  dryer stand
+- An adapter for a pre-existing
+  [printable lathe chuck](https://www.thingiverse.com/thing:2670620)
+- A printable case, not yet designed, likely derived from
+  [this existing design](https://www.thingiverse.com/thing:845415)
 
-The firmware supports keypad speed presets, bidirectional ramped direction
-changes, TMC2209 UART setup, StallGuard stop detection, and optional TRS pedal
-control for both start/stop and variable speed pedal options.
+The firmware targets an Arduino Uno-class board with an LCD keypad shield and a
+BIGTREETECH-style TMC2209 driver over STEP/DIR plus one-wire UART. It supports
+keypad speed presets, ramped direction changes, TMC2209 UART setup, StallGuard
+stop detection, and optional TRS pedal control.
 
 ## Hardware
 
 Tested around this setup:
 
 - Arduino Uno-class board, currently an Inventr.io HERO
-- LCD keypad shield using the common `LiquidCrystal lcd(8, 9, 4, 5, 6, 7)` pinout
+- LCD keypad shield using the common `LiquidCrystal lcd(8, 9, 4, 5, 6, 7)`
+  pinout
 - TMC2209 stepper driver
 - NEMA 17 stepper motor
-- 24 V motor supply recommended for higher RPM operation
+- 24 V motor supply, recommended for higher RPM operation
 - Isolated 1/4 in TRS jack for optional pedals
 
-The Arduino, driver logic, and motor supply must share ground.
+The Arduino, driver logic, and motor supply must share ground. Do not feed the
+motor supply voltage into the Arduino barrel jack.
 
 ## Wiring
+
+The LCD keypad shield provides its own Arduino connections when it is mounted on
+the board. The remaining connections are user-wired to the TMC2209, power
+supply, and optional pedal jack.
+
+Shield pins:
+
+| Arduino | Used by |
+| --- | --- |
+| A0 | LCD keypad shield buttons |
+| D4-D9 | LCD keypad shield display |
+
+User-wired TMC2209 connections (connections can be made from the breakout pins on the shield):
 
 | Arduino | Connects to |
 | --- | --- |
@@ -47,9 +67,8 @@ The Arduino, driver logic, and motor supply must share ground.
 | D12 | 1k resistor to TMC2209 PDN_UART / PDN |
 | A2 | same TMC2209 PDN_UART / PDN node |
 | A1 | TMC2209 DIAG |
-| D4-D9 | LCD keypad shield |
 
-For the optional pedal jack:
+User-wired optional pedal jack:
 
 | TRS jack contact | Arduino |
 | --- | --- |
@@ -79,9 +98,9 @@ TMC2209 is not detected.
 The firmware auto-detects three pedal states from the TRS jack:
 
 - No pedal: both sense pins read pulled high.
-- Switch pedal (TS, on/off only): sleeve is grounded by the TS plug; tip closes to ground when
-  pressed.
-- Expression pedal (TRS, Ring common): sleeve reads an analog position value.
+- Switch pedal, TS on/off only: sleeve is grounded by the TS plug; tip closes
+  to ground when pressed.
+- Expression pedal, TRS with ring common: sleeve reads an analog position value.
 
 In switch mode, the selected keypad speed is held stopped until the pedal is
 pressed.
@@ -97,9 +116,9 @@ tuning, copy [src/config_user.example.h](src/config_user.example.h) to
 `src/config_user.h` and override only the values you want to change.
 `src/config_user.h` is ignored by git.
 
-`src/config_user.h` is included at the end of `src/config.h`. Override a setting with
-`#undef CONFIG_NAME` followed by `#define CONFIG_NAME ...`. The firmware then
-uses those final `CONFIG_*` values internally.
+`src/config_user.h` is included at the end of `src/config.h`. Override a
+setting with `#undef CONFIG_NAME` followed by `#define CONFIG_NAME ...`. The
+firmware then uses those final `CONFIG_*` values internally.
 
 The most likely values to change are:
 
@@ -134,24 +153,36 @@ the driver over UART.
 writes that value to the TMC2209 during setup and also uses it to calculate the
 STEP pulse rate for a requested RPM.
 
-## PlatformIO
+## VS Code and PlatformIO
 
-Build:
+This project is designed to be built in VS Code using the PlatformIO IDE extension.
+
+1. Install [Visual Studio Code](https://code.visualstudio.com/).
+2. Install the `PlatformIO IDE` extension from the VS Code Extensions view.
+3. Open this repository folder in VS Code.
+4. Wait for PlatformIO to finish configuring the project.
+5. Connect the Arduino-compatible board over USB.
+6. In the PlatformIO sidebar, open `Project Tasks > uno`.
+7. Run `General > Build` to compile.
+8. Run `General > Upload` to flash the board.
+9. Run `Platform > Monitor` to open the serial monitor at `115200` baud.
+
+Equivalent CLI commands:
 
 ```sh
 pio run
-```
-
-Upload:
-
-```sh
 pio run -t upload
+pio device monitor
 ```
 
-Serial monitor:
+The active PlatformIO environment is defined in [platformio.ini](platformio.ini):
 
-```sh
-pio device monitor
+```ini
+[env:uno]
+platform = atmelavr
+board = uno
+framework = arduino
+monitor_speed = 115200
 ```
 
 ## Project Layout
