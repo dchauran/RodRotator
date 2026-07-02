@@ -1,7 +1,6 @@
 #include "driver_control.h"
 
 #include <Arduino.h>
-#include <SoftwareSerial.h>
 #include <TMCStepper.h>
 
 #include "config.h"
@@ -9,12 +8,19 @@
 #include "state.h"
 #include "ui_lcd.h"
 
-SoftwareSerial tmcSerial(TMC_RX_PIN, TMC_TX_PIN);
-TMC2209Stepper driver(&tmcSerial, TMC_R_SENSE, TMC_DRIVER_ADDRESS);
+#if TMC_DRIVER_TYPE == TMC_DRIVER_TMC2208
+TMC2208Stepper driver(TMC_RX_PIN, TMC_TX_PIN, TMC_R_SENSE);
+const char *TMC_DRIVER_NAME = "TMC2208";
+#elif TMC_DRIVER_TYPE == TMC_DRIVER_TMC2209
+TMC2209Stepper driver(TMC_RX_PIN, TMC_TX_PIN, TMC_R_SENSE, TMC_DRIVER_ADDRESS);
+const char *TMC_DRIVER_NAME = "TMC2209";
+#else
+#error "Unsupported CONFIG_TMC_DRIVER_TYPE"
+#endif
 
 void applyDriverPreset()
 {
-  if (!driverOnline)
+  if (!USE_TMC_UART || !driverOnline)
     return;
 
   if (USE_UART_CURRENT_CONTROL)
@@ -30,11 +36,22 @@ void applyDriverPreset()
   }
 
   driver.en_spreadCycle(false);
-  driver.SGTHRS(STALL_GUARD_THRESHOLDS[speedIndex]);
+#if TMC_DRIVER_TYPE == TMC_DRIVER_TMC2209
+  if (USE_STALL_GUARD)
+  {
+    driver.SGTHRS(STALL_GUARD_THRESHOLDS[speedIndex]);
+  }
+#endif
 }
 
 void printDriverPreset()
 {
+  if (!USE_TMC_UART)
+  {
+    Serial.println("driver: STEP/DIR fallback, UART disabled");
+    return;
+  }
+
   Serial.print("current: ");
   if (USE_UART_CURRENT_CONTROL)
   {
@@ -52,17 +69,38 @@ void printDriverPreset()
   Serial.print(driver.irun());
   Serial.print(" IHOLD: ");
   Serial.print(driver.ihold());
-  Serial.print(" SGTHRS: ");
-  Serial.println(STALL_GUARD_THRESHOLDS[speedIndex]);
+#if TMC_DRIVER_TYPE == TMC_DRIVER_TMC2209
+  if (USE_STALL_GUARD)
+  {
+    Serial.print(" SGTHRS: ");
+    Serial.println(STALL_GUARD_THRESHOLDS[speedIndex]);
+  }
+  else
+  {
+    Serial.println(" StallGuard disabled");
+  }
+#else
+  Serial.println(" StallGuard unavailable on TMC2208");
+#endif
 }
 
 void setupDriver()
 {
   pinMode(DIAG_PIN, INPUT);
   pinMode(TMC_RX_PIN, INPUT);
-  pinMode(TMC_TX_PIN, OUTPUT);
 
-  tmcSerial.begin(115200);
+  if (!USE_TMC_UART)
+  {
+    pinMode(TMC_TX_PIN, INPUT);
+    driverOnline = true;
+    uartWarningAcknowledged = true;
+    Serial.print(TMC_DRIVER_NAME);
+    Serial.println(" UART: disabled, STEP/DIR fallback");
+    printDriverPreset();
+    return;
+  }
+
+  pinMode(TMC_TX_PIN, OUTPUT);
 
   driver.begin();
   driver.pdn_disable(true);
@@ -74,9 +112,13 @@ void setupDriver()
   driver.TPOWERDOWN(255);
   driver.microsteps(MICROSTEPS);
   driver.intpol(true);
+#if TMC_DRIVER_TYPE == TMC_DRIVER_TMC2209
   driver.semin(0);
+#endif
   driver.en_spreadCycle(false);
+#if TMC_DRIVER_TYPE == TMC_DRIVER_TMC2209
   driver.TCOOLTHRS(0xFFFFF);
+#endif
   driver.pwm_autoscale(true);
   driver.pwm_autograd(true);
   driver.pwm_reg(8);
@@ -84,9 +126,11 @@ void setupDriver()
   driver.TPWMTHRS(0); // keep StealthChop-only while testing
 
   driverOnline = driver.test_connection() == 0;
+  uartWarningAcknowledged = driverOnline;
   applyDriverPreset();
 
-  Serial.print("TMC2209 UART: ");
+  Serial.print(TMC_DRIVER_NAME);
+  Serial.print(" UART: ");
   Serial.println(driverOnline ? "OK" : "not detected");
   if (driverOnline)
   {
@@ -96,6 +140,12 @@ void setupDriver()
 
 void pollStallGuard()
 {
+#if TMC_DRIVER_TYPE != TMC_DRIVER_TMC2209
+  return;
+#else
+  if (!USE_TMC_UART || !USE_STALL_GUARD)
+    return;
+
   if (!motorRunning || stallFault)
     return;
 
@@ -124,4 +174,5 @@ void pollStallGuard()
   {
     stallDiagHighSinceMillis = 0;
   }
+#endif
 }

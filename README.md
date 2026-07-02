@@ -88,10 +88,14 @@ required for normal use, though small series protection resistors are harmless.
 - Direction changes while running ramp down, flip direction while stopped, then
   ramp back up.
 - If a stall fault is latched, `SELECT` clears it.
+- In either pedal mode, moving the pedal to its off position also clears a
+  latched stall.
 - If a pedal is connected, `SELECT` prints pedal ADC debug values to serial.
 
-The first LCD line shows `Stop!` or `Run !` when UART communication with the
-TMC2209 is not detected.
+If UART communication with the TMC2209 is not detected at startup, the LCD
+shows a blocking `TMC UART ERROR` message. Press `SELECT` to continue anyway;
+after that, the first LCD line shows `Stop!` or `Run !` as a persistent
+reminder that UART is offline.
 
 ## Pedal Modes
 
@@ -129,6 +133,9 @@ The most likely values to change are:
 | `CONFIG_RUN_CURRENT_MA` | TMC2209 RMS current per speed preset |
 | `CONFIG_STALL_GUARD_THRESHOLDS` | StallGuard sensitivity per speed preset |
 | `CONFIG_STALL_DIAG_DEBOUNCE_MS` | How long DIAG must remain asserted before a stall |
+| `CONFIG_TMC_DRIVER_TYPE` | Select `CONFIG_TMC_DRIVER_TMC2209` or `CONFIG_TMC_DRIVER_TMC2208` |
+| `CONFIG_USE_TMC_UART` | Enable TMC UART setup and diagnostics |
+| `CONFIG_USE_STALL_GUARD` | Enable DIAG/StallGuard stop detection |
 | `CONFIG_SPEED_RAMP_RPM_PER_SECOND` | Ramp rate for speed and direction changes |
 | `CONFIG_EXPRESSION_HEEL_ADC` / `CONFIG_EXPRESSION_TOE_ADC` | Expression pedal calibration |
 | `CONFIG_EXPRESSION_INVERT` | Reverse expression pedal direction |
@@ -149,6 +156,14 @@ Set `CONFIG_USE_UART_CURRENT_CONTROL` to `false` if you want the TMC2209 Vref
 potentiometer to control current while firmware still configures the rest of
 the driver over UART.
 
+Set `CONFIG_USE_TMC_UART` and `CONFIG_USE_STALL_GUARD` to `false` to run the
+driver as a plain STEP/DIR module. The UART and DIAG wires can stay physically
+connected; the firmware leaves the UART pins inactive and skips the missing-UART
+screen and StallGuard polling. In that mode, current and microstepping come from
+the driver module's standalone hardware settings instead of firmware, but
+`CONFIG_MICROSTEPS` must still match the module's hardware microstep setting so
+RPM math stays correct.
+
 `CONFIG_MICROSTEPS` is still relevant even with UART enabled. The firmware
 writes that value to the TMC2209 during setup and also uses it to calculate the
 STEP pulse rate for a requested RPM.
@@ -162,7 +177,8 @@ This project is designed to be built in VS Code using the PlatformIO IDE extensi
 3. Open this repository folder in VS Code.
 4. Wait for PlatformIO to finish configuring the project.
 5. Connect the Arduino-compatible board over USB.
-6. In the PlatformIO sidebar, open `Project Tasks > uno`.
+6. In the PlatformIO sidebar, open the environment matching your driver:
+   `uno_tmc2209`, `uno_tmc2208`, or `uno_stepdir`.
 7. Run `General > Build` to compile.
 8. Run `General > Upload` to flash the board.
 9. Run `Platform > Monitor` to open the serial monitor at `115200` baud.
@@ -170,15 +186,38 @@ This project is designed to be built in VS Code using the PlatformIO IDE extensi
 Equivalent CLI commands:
 
 ```sh
-pio run
-pio run -t upload
-pio device monitor
+pio run -e uno_tmc2209
+pio run -e uno_tmc2209 -t upload
+pio device monitor -e uno_tmc2209
 ```
 
-The active PlatformIO environment is defined in [platformio.ini](platformio.ini):
+Replace `uno_tmc2209` with `uno_tmc2208` or `uno_stepdir` as needed.
+
+The PlatformIO environments are defined in [platformio.ini](platformio.ini):
 
 ```ini
-[env:uno]
+[env:uno_tmc2209]
+build_flags =
+  -DCONFIG_TMC_DRIVER_TYPE=CONFIG_TMC_DRIVER_TMC2209
+  -DCONFIG_USE_TMC_UART=true
+  -DCONFIG_USE_STALL_GUARD=true
+
+[env:uno_tmc2208]
+build_flags =
+  -DCONFIG_TMC_DRIVER_TYPE=CONFIG_TMC_DRIVER_TMC2208
+  -DCONFIG_USE_TMC_UART=true
+  -DCONFIG_USE_STALL_GUARD=false
+
+[env:uno_stepdir]
+build_flags =
+  -DCONFIG_USE_TMC_UART=false
+  -DCONFIG_USE_STALL_GUARD=false
+```
+
+All environments share this base configuration:
+
+```ini
+[env]
 platform = atmelavr
 board = uno
 framework = arduino

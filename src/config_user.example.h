@@ -11,6 +11,20 @@
 // #undef CONFIG_MICROSTEPS
 // #define CONFIG_MICROSTEPS 4
 
+// Driver type is normally selected by the PlatformIO environment:
+// uno_tmc2209, uno_tmc2208, or uno_stepdir. Override here only if you want a
+// local config_user.h to take precedence over the selected build environment.
+// TMC2208 supports UART but not StallGuard.
+// #undef CONFIG_TMC_DRIVER_TYPE
+// #define CONFIG_TMC_DRIVER_TYPE CONFIG_TMC_DRIVER_TMC2208
+
+// Plain STEP/DIR fallback. This ignores UART and StallGuard without requiring
+// the existing UART/DIAG wires to be disconnected.
+// #undef CONFIG_USE_TMC_UART
+// #define CONFIG_USE_TMC_UART false
+// #undef CONFIG_USE_STALL_GUARD
+// #define CONFIG_USE_STALL_GUARD false
+
 // #undef CONFIG_SPEED_RAMP_RPM_PER_SECOND
 // #define CONFIG_SPEED_RAMP_RPM_PER_SECOND 60.0f
 

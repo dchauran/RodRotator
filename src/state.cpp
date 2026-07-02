@@ -15,6 +15,7 @@ bool pendingDirectionForward = true;
 float directionChangeResumeRpm = SPEED_PRESETS_RPM[DEFAULT_SPEED_INDEX];
 bool stallFault = false;
 bool driverOnline = false;
+bool uartWarningAcknowledged = false;
 bool manualRunRequested = false;
 bool pedalSwitchPressed = false;
 PedalMode pedalMode = PEDAL_NONE;
@@ -23,4 +24,10 @@ void ignoreStallGuardFor(unsigned long durationMs)
 {
   stallIgnoreUntilMillis = millis() + durationMs;
   stallDiagHighSinceMillis = 0;
+}
+
+void clearStallFault()
+{
+  stallFault = false;
+  ignoreStallGuardFor(STALL_IGNORE_AFTER_CHANGE_MS);
 }

@@ -45,6 +45,17 @@ int readLcdButtons()
 
 void handleButton(int button)
 {
+  if (!driverOnline && !uartWarningAcknowledged)
+  {
+    if (button == btnSELECT)
+    {
+      uartWarningAcknowledged = true;
+      updateLcd();
+    }
+
+    return;
+  }
+
   switch (button)
   {
   case btnUP:
@@ -72,7 +83,7 @@ void handleButton(int button)
   case btnSELECT:
     if (stallFault)
     {
-      stallFault = false;
+      clearStallFault();
       applyPedalControl();
       updateLcd();
     }
@@ -122,6 +133,15 @@ void pollButtons()
 
 void updateLcd()
 {
+  if (!driverOnline && !uartWarningAcknowledged)
+  {
+    lcd.setCursor(0, 0);
+    lcd.print("TMC UART ERROR  ");
+    lcd.setCursor(0, 1);
+    lcd.print("Select continue ");
+    return;
+  }
+
   lcd.setCursor(0, 0);
   if (stallFault)
   {
@@ -130,10 +150,10 @@ void updateLcd()
   else
   {
     lcd.print(motorRunning ? "Run " : "Stop");
-    lcd.print(driverOnline ? "" : "!");
   }
 
-  lcd.print(directionForward ? " Fwd " : " Rev ");
+  lcd.print(driverOnline ? " " : "!");
+  lcd.print(directionForward ? "Fwd " : "Rev ");
   lcd.print("RPM ");
   if (pedalMode == PEDAL_EXPRESSION)
   {

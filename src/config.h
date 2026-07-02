@@ -9,8 +9,9 @@
 // config_user.h is included at the end of this file. Override a default there
 // with #undef CONFIG_NAME followed by #define CONFIG_NAME new_value.
 
-// Motor and speed table. CONFIG_MICROSTEPS is written to the TMC2209 over UART
-// and also used for RPM math, so it must match the actual driver microstep mode.
+// Motor and speed table. CONFIG_MICROSTEPS is used for RPM math and is written
+// to the TMC2209 when UART is enabled, so it must match the actual driver
+// microstep mode.
 // Keep the current/stall/debounce arrays aligned with CONFIG_SPEED_PRESETS_RPM:
 // each entry in a column applies to the same speed preset.
 #define CONFIG_MOTOR_STEPS_PER_REV 200
@@ -29,10 +30,23 @@
 #define CONFIG_SPEED_RAMP_RPM_PER_SECOND 80.0f
 #define CONFIG_SPEED_RAMP_INTERVAL_MS    50UL
 
-// TMC2209 setup. Set CONFIG_USE_UART_CURRENT_CONTROL false to use the driver's
-// Vref potentiometer for current while still using UART for other settings.
+// TMC driver setup. Set CONFIG_USE_TMC_UART false to use the driver as a plain
+// STEP/DIR module with the existing UART/DIAG wires left connected but ignored.
+// Set CONFIG_USE_UART_CURRENT_CONTROL false to use the driver's Vref
+// potentiometer for current while still using UART for other settings.
+#define CONFIG_TMC_DRIVER_TMC2208 2208
+#define CONFIG_TMC_DRIVER_TMC2209 2209
+#ifndef CONFIG_TMC_DRIVER_TYPE
+#define CONFIG_TMC_DRIVER_TYPE CONFIG_TMC_DRIVER_TMC2209
+#endif
 #define CONFIG_ENABLE_ACTIVE_LOW           true
+#ifndef CONFIG_USE_TMC_UART
+#define CONFIG_USE_TMC_UART true
+#endif
 #define CONFIG_USE_UART_CURRENT_CONTROL    true
+#ifndef CONFIG_USE_STALL_GUARD
+#define CONFIG_USE_STALL_GUARD true
+#endif
 #define CONFIG_TMC_DRIVER_ADDRESS          0b00
 #define CONFIG_TMC_R_SENSE                 0.11f
 #define CONFIG_TMC_HOLD_CURRENT_MULTIPLIER 1.0f
@@ -120,8 +134,13 @@ extern const size_t SPEED_PRESET_COUNT;
 #define SPEED_RAMP_RPM_PER_SECOND CONFIG_SPEED_RAMP_RPM_PER_SECOND
 #define SPEED_RAMP_INTERVAL_MS CONFIG_SPEED_RAMP_INTERVAL_MS
 
+#define TMC_DRIVER_TMC2208 CONFIG_TMC_DRIVER_TMC2208
+#define TMC_DRIVER_TMC2209 CONFIG_TMC_DRIVER_TMC2209
+#define TMC_DRIVER_TYPE CONFIG_TMC_DRIVER_TYPE
 #define ENABLE_ACTIVE_LOW CONFIG_ENABLE_ACTIVE_LOW
+#define USE_TMC_UART CONFIG_USE_TMC_UART
 #define USE_UART_CURRENT_CONTROL CONFIG_USE_UART_CURRENT_CONTROL
+#define USE_STALL_GUARD CONFIG_USE_STALL_GUARD
 #define TMC_DRIVER_ADDRESS CONFIG_TMC_DRIVER_ADDRESS
 #define TMC_R_SENSE CONFIG_TMC_R_SENSE
 #define TMC_HOLD_CURRENT_MULTIPLIER CONFIG_TMC_HOLD_CURRENT_MULTIPLIER

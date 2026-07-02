@@ -25,8 +25,10 @@ extern bool pendingDirectionForward;
 extern float directionChangeResumeRpm;
 extern bool stallFault;
 extern bool driverOnline;
+extern bool uartWarningAcknowledged;
 extern bool manualRunRequested;
 extern bool pedalSwitchPressed;
 extern PedalMode pedalMode;
 
 void ignoreStallGuardFor(unsigned long durationMs);
+void clearStallFault();

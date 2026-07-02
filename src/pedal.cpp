@@ -102,21 +102,41 @@ void applyPedalControl()
   if (pedalMode == PEDAL_NONE)
     return;
 
-  if (stallFault)
-  {
-    setMotorRunning(false);
-    return;
-  }
-
   if (pedalMode == PEDAL_SWITCH)
   {
     setTargetRpm(SPEED_PRESETS_RPM[selectedSpeedIndex], selectedSpeedIndex);
+
+    if (stallFault)
+    {
+      if (!pedalSwitchPressed)
+      {
+        clearStallFault();
+        updateLcd();
+      }
+
+      setMotorRunning(false);
+      return;
+    }
+
     setMotorRunning(pedalSwitchPressed);
     return;
   }
 
   float position = expressionPositionFromAdc(pedalSleeveAdc);
   float nextTargetRpm = expressionRpmFromPosition(position);
+
+  if (stallFault)
+  {
+    if (nextTargetRpm < EXPRESSION_STOP_RPM)
+    {
+      clearStallFault();
+      targetRpm = 0.0f;
+      updateLcd();
+    }
+
+    setMotorRunning(false);
+    return;
+  }
 
   if (nextTargetRpm < EXPRESSION_STOP_RPM)
   {
